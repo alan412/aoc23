@@ -9,12 +9,6 @@ def parseArgs():
 
 Pick = namedtuple("Pick", ["red", "green", "blue"])
 
-class Pick:
-   def __init__(self, red, green, blue):
-      self.red = red
-      self.green = green
-      self.blue = blue
-
 class Game:     
    def __init__(self, line):
       (before, after) = line.split(':')
@@ -39,7 +33,7 @@ class Game:
 
    def possible(self, red, green, blue):
      for pick in self.picks:
-        # print(f"{red} {green} {blue}:  {pick.red} {pick.blue} {pick.green}")
+        print(f"{red} {green} {blue}:  {pick}")
         if (red < pick.red) or (green < pick.green) or (blue < pick.blue):
            return False
      return True
