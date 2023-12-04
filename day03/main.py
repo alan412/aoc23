@@ -42,9 +42,9 @@ class Schematic:
       for y in range((part.y - 1), (part.y + 2)):
          for x in range ((part.startX - 1), (part.endX + 2)):
             if (y, x) in self.symbols:
-               print(f" {y},{x} {self.symbols[(y,x)]}")
+#               print(f" {part} {y},{x} {self.symbols[(y,x)]}")
                return True
-  
+            
       return False
    
 
@@ -54,13 +54,13 @@ if __name__ == "__main__":
   schematic = Schematic()
 
   for line in open(args.infile, 'r'):
-     schematic.addLine(line)
+     schematic.addLine(line.strip())
   
   total = 0
   for part in schematic.partNumbers:
      if schematic.hasSymbolAround(part):
         total += part.val
-        print(f"Part: {part} Total: {total}")
+        # print(f"Part: {part} Total: {total}")
      else:
         print(f"Part - no symbol: {part} Total: {total}")
 
