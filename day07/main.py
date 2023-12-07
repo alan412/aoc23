@@ -22,7 +22,7 @@ class HandType(Enum):
          return self.value < other.value
       return NotImplemented
 
-valMap = {'A' : 14, 'K' : 13, 'Q' : 12, 'J' : 11, 'T' : 10, '9' : 9, '8' : 8, '7' : 7, '6' : 6,
+valMap = {'A' : 14, 'K' : 13, 'Q' : 12, 'J' : 0, 'T' : 10, '9' : 9, '8' : 8, '7' : 7, '6' : 6,
           '5' : 5, '4' : 4, '3' : 3, '2' : 2, '1' : 1}
 class Hand:
    def __init__(self, line):
@@ -31,18 +31,24 @@ class Hand:
       dictCards = {}
       for c in self.hand:                  
          dictCards[c] = dictCards.get(c, 0) + 1
+      numJokers = dictCards.get('J', 0)
+      dictCards['J'] = 0
+         
       sorted_cards = sorted(dictCards.items(), key=lambda x:x[1], reverse = True)
+
+      maxCards = sorted_cards[0][1] + numJokers
+
       self.handType = HandType.HIGH_CARD
-      if sorted_cards[0][1] == 5:
+      if maxCards == 5:
          self.handType = HandType.FIVE_OF_A_KIND
-      elif sorted_cards[0][1] == 4:
+      elif maxCards == 4:
          self.handType = HandType.FOUR_OF_A_KIND
-      elif sorted_cards[0][1] == 3:
+      elif maxCards == 3:
          if sorted_cards[1][1] == 2:
             self.handType = HandType.FULL_HOUSE
          else:
             self.handType = HandType.THREE_OF_A_KIND
-      elif sorted_cards[0][1] == 2:
+      elif maxCards == 2:
          if sorted_cards[1][1] == 2:
             self.handType = HandType.TWO_PAIR
          else:
