@@ -38,7 +38,7 @@ sys.setrecursionlimit(100_000)
 
 # Recursion - 
 def make_path(prevPipe, currPipe):
-  path = []
+  path = [currPipe]
   for connection in currPipe.connectsTo():
     if connection in pipes and connection != (prevPipe.x, prevPipe.y):
       nextPipe = pipes[connection]
@@ -63,10 +63,43 @@ def part1():
       if path:
         print(f"Path found: {path}, Length: {len(path) / 2}")
         return path
-def part2():
-  path = part1()
-  
-        
+
+dots = []
+
+maxSize = 0
+
+def isInside(startX, y, dictPath):
+  numLines = 0
+  for x in range(startX):
+    if (x,y) in dictPath:
+      ch = pipes[(x,y)].char
+      if ch in ['|','J','L']:  # Either needs or doesn't need S depending on input
+        numLines += 1
+  if numLines % 2:
+    return True
+  return False
+
+def part2(path):
+  dictPath = {}
+  numInside = 0
+
+  for pt in path:
+    dictPath[(pt.x, pt.y)] = True
+
+  tiles = []
+  for x in range(maxSize):
+    for y in range(maxSize):
+      if (x,y) not in dictPath:
+        tiles.append((x,y))
+
+  for (x,y) in tiles:
+    if isInside(x, y, dictPath):
+      numInside += 1
+      print(f"{x},{y} is Inside")
+
+  print(f"Total: {numInside}")
+
+
 
 
 
@@ -78,6 +111,13 @@ if __name__ == "__main__":
           pipes[(x,y)] = Pipe(x, y, ch)
         if ch == 'S':
           startPipe = pipes[(x,y)]
+        if ch == '.':
+          dots.append((x,y))
+        if y > maxSize:
+          maxSize = y
+        if x > maxSize:
+          maxSize = x
 
-  part1()
+  path = part1()
+  part2(path)
   
