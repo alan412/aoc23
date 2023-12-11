@@ -33,14 +33,14 @@ class TelescopeView:
     rowDiff = 0
     for y in range(maxSize + 1):
       if y not in self.rows:
-        rowDiff += 1
+        rowDiff += 999_999
       else:
         rowTranslate[y] = y + rowDiff
     
     colDiff = 0
     for x in range(maxSize + 1):
       if x not in self.cols:
-        colDiff += 1
+        colDiff += 999_999
       else:
         colTranslate[x] = x + colDiff
     
