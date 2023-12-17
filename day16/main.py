@@ -96,28 +96,43 @@ class Grid():
       for beam in listBeams:
         self.laser_step(beam)
   
-  def part1(self):
-    self.laser_step(Beam(0, 0, Dir.RIGHT))
-
+  def get_num_energized(self):
     num_energized = 0
-    display = ""
-    num_spots = 0
     for y in range(self.maxY + 1):
       for x in range(self.maxX):
         space = self.spaces.get((x,y), None)
         if space:
           if space.energized:
             num_energized += 1
-            display += "#"
-          else:
-            display += "."
-      display += "\n"
+    return num_energized
+  
+  def reset(self):
+    self.alreadyBeen = {}
+    for space in self.spaces.values():
+      space.energized = False
 
-    # print(display)
-
-    print(f"Energized: {num_energized}")
-
-
+  def part1(self):
+    self.laser_step(Beam(0, 0, Dir.RIGHT))
+    print(f"Energized: {self.get_num_energized()}")
+    self.reset()
+  
+  def part2(self):
+    largest = 0
+    for y in range(self.maxY + 1):
+      self.laser_step(Beam(0, y, Dir.RIGHT))
+      largest = max(largest, self.get_num_energized())
+      self.reset()
+      self.laser_step(Beam(self.maxX - 1, y, Dir.LEFT))
+      largest = max(largest, self.get_num_energized())
+      self.reset()
+    for x in range(self.maxX):
+      self.laser_step(Beam(x, 0, Dir.DOWN))
+      largest = max(largest, self.get_num_energized())
+      self.reset()
+      self.laser_step(Beam(x, self.maxY, Dir.RIGHT))
+      largest = max(largest, self.get_num_energized())
+      self.reset()    
+    print(f"Part2: {largest}")
 
 sys.setrecursionlimit(100_000)
 
@@ -127,4 +142,5 @@ if __name__ == "__main__":
 
   for y, line in enumerate(open(args.infile, 'r')):
     grid.add_line(line, y)
-  grid.part1()
+  #grid.part1()
+  grid.part2()
