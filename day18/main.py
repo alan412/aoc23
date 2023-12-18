@@ -10,9 +10,11 @@ def parseArgs():
 
 class Instruction():
   def __init__(self, dir, num, color):
-    self.dir = dir
-    self.num = num
-    self.color = color
+    translate = {'0' : 'R', '1' : 'D', '2' : 'L', '3' : 'U'} 
+    self.num = int(color[0:5], 16)
+    self.dir = translate[color[5]]
+    self.color = num
+
   def __repr__(self):
     return f"{self.dir} {self.num} {self.color}"
 
@@ -27,11 +29,13 @@ class Grid():
     self.largestY = 0
     self.smallestX = 0
     self.smallestY = 0
+    self.corners = [(0,0)]
+    self.perimeter = 0
 
   def add_line(self, line, y):
     r = re.match("(R|D|L|U) (\d+) \(\#([0-9a-f]+)", line)
-    print(line)
     newInstruction = Instruction(r.group(1), int(r.group(2)), r.group(3))
+    print(newInstruction, line)
 
     change = (0, 0)
     match newInstruction.dir:
@@ -44,16 +48,25 @@ class Grid():
        case 'U':
         change = (0, -1)
     
-    for i in range(newInstruction.num):
-       self.currentPos = tadd(self.currentPos, change)
-       self.map[self.currentPos] = '#'
-       self.largestX = max(self.largestX, self.currentPos[0])
-       self.smallestX = min(self.smallestX, self.currentPos[0])
+    # for i in range(newInstruction.num):
+    #    self.currentPos = tadd(self.currentPos, change)
+    #    self.map[self.currentPos] = '#'
+    #    self.largestX = max(self.largestX, self.currentPos[0])
+    #    self.smallestX = min(self.smallestX, self.currentPos[0])
 
-       self.largestY = max(self.largestY, self.currentPos[1])
-       self.smallestY = min(self.smallestY, self.currentPos[1])
+    #    self.largestY = max(self.largestY, self.currentPos[1])
+    #    self.smallestY = min(self.smallestY, self.currentPos[1])
+    self.currentPos = tadd(self.currentPos, (change[0] * newInstruction.num, change[1] * newInstruction.num))
+    self.corners.append(self.currentPos)
+    self.perimeter += newInstruction.num
+    print(self.corners)
 
-
+  def volume(self):
+    return abs(sum(
+      (self.corners[i - 1][1] + self.corners[i][1]) * (self.corners[i - 1][0] - self.corners[i][0])
+      for i in range(len(self.corners)) 
+    )) // 2 + self.perimeter // 2 + 1
+  
   def __repr__(self):
      return f"{self.map}"
   
@@ -104,9 +117,10 @@ class Grid():
     #print("----After Filling----")
     
     #self.fill(1, 1, '', '#')
-    self.fill_bfs(1, 1, '', '#')
+    #self.fill_bfs(1, 1, '', '#')
     # self.print_as_grid()
-    print(f"Number dug: {len(self.map)}")
+    #print(f"Number dug: {len(self.map)}")
+    print(f"Part 2: Volume {self.volume()}")
 
 sys.setrecursionlimit(100_000)
 
