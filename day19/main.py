@@ -8,6 +8,21 @@ def parseArgs():
   parser.add_argument('infile', help='input file')
   return parser.parse_args()
 
+class Range():
+  def __init__(self, lower, upper):
+    self.lower = lower
+    self.upper = upper
+  def size(self):
+    if self.upper > self.lower:
+      return (self.upper - self.lower) + 1
+    return 0
+  def intersect(self, other):
+    lower = max(self.lower, other.lower)
+    upper = min(self.upper, other.upper)
+    return Range(lower, upper)
+  def __repr__(self):
+    return f"({self.lower}->{self.upper})"
+
 class Rule():
   def __init__(self, rule):
     self.varCheck = None
@@ -22,6 +37,28 @@ class Rule():
       self.dest = r.group(4)
     else:
       self.dest = rule
+  def runRange(self, mapWorkflow, ranges):
+    if not self.comparison:
+      return mapWorkflow[self.dest].runRange(mapWorkflow, ranges), {k:None for k in 'xmas'}
+    
+    old_range = ranges[self.varCheck]
+    complement_ = ranges[self.varCheck]
+
+    if self.comparison == '<':
+      range_ = old_range.intersect(Range(1, self.value - 1))
+      complement_ = old_range.intersect(Range(self.value, 4000))
+    if self.comparison == '>':
+      range_ = old_range.intersect(Range(self.value + 1, 4000))
+      complement_ = old_range.intersect(Range(1, self.value))
+    
+    new_ranges = dict(ranges)
+    new_ranges[self.varCheck] = range_
+
+    complement_ranges = dict(ranges)
+    complement_ranges[self.varCheck] = complement_
+
+    return mapWorkflow[self.dest].runRange(mapWorkflow, new_ranges), complement_ranges
+
   def process_part(self, part):
     if not self.comparison:
       return self.dest
@@ -75,7 +112,22 @@ class Workflow():
          print(f"{part} -> {dest}")
          return dest
     return None
-
+  
+  def runRange(self, mapWorkflow, ranges):
+    if self.name == 'A':
+      total = 1
+      for k in 'xmas':
+        total *= ranges[k].size()
+      return total
+    if self.name == 'R':
+      return 0
+    total = 0
+    for rule in self.rules:
+      (result, ranges) = rule.runRange(mapWorkflow, ranges)
+      total += result
+    return total
+    
+    
 class Part():
   def __init__(self, line):
     r = re.match("{x=(\d+),m=(\d+),a=(\d+),s=(\d+)}", line)
@@ -106,6 +158,16 @@ def part1(workflows, parts):
     total += part.score()
   print(f"Part1: {total}")
 
+
+def part2(workflows):
+  mapWorkflow = dict()
+  mapWorkflow['A'] = Workflow('A{A}')
+  mapWorkflow['R'] = Workflow('R{R}')
+  for workflow in workflows:
+    mapWorkflow[workflow.name] = workflow
+  ans = mapWorkflow['in'].runRange(mapWorkflow, {k: Range(1,4000) for k in 'xmas'})
+  print(f"Part2: {ans}")
+
 if __name__ == "__main__":
   args = parseArgs()
   
@@ -122,4 +184,5 @@ if __name__ == "__main__":
       workflows.append(Workflow(line))
     else:
       parts.append(Part(line))
-  part1(workflows, parts)
+  #part1(workflows, parts)
+  part2(workflows)
