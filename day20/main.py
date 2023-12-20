@@ -102,6 +102,39 @@ def part1(modules):
     pulses = {}
   print(f"Part1: {total_low * total_high}")
 
+def part2(modules):
+  global pulses
+  button_presses = 0
+  done = False
+  while not done:
+    modules['broadcaster'].process_pulse(Pulse('button', 'broadcast', True), 0)
+    time = 1
+    num_rx_low_pulses = 0
+    num_rx_high_pulses = 0
+    pulseList = pulses.get(time, None)
+    while pulseList:
+       for pulse in pulseList:
+          # Not happy about this, basically figured out it was an lcm problem from reddit
+          # and then figured it out specific for my input set by changing this to each of the four
+          # that fed in (after making a graphviz of the whole thing)
+          if pulse.src == 'kv' and not pulse.low:
+            print(f"{button_presses}: {pulse}")
+          if pulse.destination == 'rx':
+            if pulse.low:
+              num_rx_low_pulses += 1
+            else:
+              num_rx_high_pulses += 1
+          elif pulse.destination in modules:
+            modules[pulse.destination].process_pulse(pulse, time)
+       time += 1
+       pulseList = pulses.get(time, None)
+    if num_rx_low_pulses == 1:
+      done = True
+      print(f"After {button_presses + 1} press")
+    else:
+      button_presses += 1
+      pulses = {}
+
 modules = {}
 # map of time plus list  
 pulses = {}
@@ -115,5 +148,5 @@ if __name__ == "__main__":
     new_module = Module(line.strip())
     modules[new_module.name] = new_module
 
-  part1(modules)
-  # part2(workflows)
+  # part1(modules)
+  part2(modules)
