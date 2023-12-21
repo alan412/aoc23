@@ -48,15 +48,7 @@ class Grid():
   def __repr__(self):
     return f"{self.start} {self.squares} {self.maxX} {self.maxY}"
 
-def part1(grid):
-  print(grid)
-  num_times = 64
-  for s in range(64 + 1):
-    num_places = grid.num_places(grid.start, num_times)
-  print(f"Pt1: After {num_times} times",len(num_places))
-
 def part2(grid):
-  print(grid)
   X,Y = [0,1,2], []
   target = (26501365 - 65) // 131
   grid.positions.clear()
