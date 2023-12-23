@@ -23,6 +23,7 @@ class Grid():
     self.maxX = 0
     self.maxY = 0
     self.positions = set()
+    self.cache = {}
 
   def add_line(self, line, y):
     for x, c in enumerate(line):
@@ -30,6 +31,7 @@ class Grid():
     self.maxX = x
     self.maxY = y 
 
+  @cache
   def is_valid(self, pt, d):
     allowed = {'>':(1,0), '<':(-1,0), 'v':(0,1), '^':(0,-1)}
     if pt.x < 0 or pt.x > self.maxX:
@@ -40,7 +42,8 @@ class Grid():
       return False
     elif self.squares[pt] == '.':
       return True
-    elif d == allowed[self.squares[pt]]:
+    #elif d == allowed[self.squares[pt]]:
+    else:  # For Part 2, all directions allowed
       return True
     return False
 
@@ -51,6 +54,11 @@ class Grid():
     if pt == self.dest:
       return visited_squares
 
+    t_parameters = (pt, tuple(set(visited_squares)))
+    cache_result = self.cache.get(t_parameters, None)
+    if cache_result:
+      return cache_result
+    
     visited_squares.append(pt)
 
     for d in dirs:
@@ -66,7 +74,8 @@ class Grid():
       if path and len(path) > longest:
         longestPath = path
         longest = len(path)
-        
+    
+    self.cache[t_parameters] = longestPath
     return longestPath
 
   def wrap(self, pt):
