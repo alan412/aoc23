@@ -16,6 +16,22 @@ Point = namedtuple("Point", "x y")
 def add_pt(pt1, pt2):  # use tuple notation so we can add Points and reg tuples
   return Point(pt1[0] + pt2[0], pt1[1] + pt2[1])
 
+class Node():
+  def __init__(self, pt):
+    self.pt = pt
+    self.connections = {}
+  def add_edge(self, node, weight=1):
+    self.connections[node] = weight
+  def remove_edge(self, node):
+    del self.connections[node]
+  def remove_thyself(self):
+    keys = list(self.connections.keys())
+    assert len(keys) == 2
+    keys[0].add_edge(keys[1], self.connections[keys[0]] + self.connections[keys[1]])
+    keys[1].add_edge(keys[0], self.connections[keys[1]] + self.connections[keys[0]])
+    keys[0].remove_edge(self)
+    keys[1].remove_edge(self)
+  
 class Grid():
   def __init__(self):
     self.squares = {}
@@ -24,6 +40,8 @@ class Grid():
     self.maxY = 0
     self.positions = set()
     self.cache = {}
+    self.graph = None
+    self.longest = 0
 
   def add_line(self, line, y):
     for x, c in enumerate(line):
@@ -31,56 +49,82 @@ class Grid():
     self.maxX = x
     self.maxY = y 
 
-  @cache
-  def is_valid(self, pt, d):
-    allowed = {'>':(1,0), '<':(-1,0), 'v':(0,1), '^':(0,-1)}
-    if pt.x < 0 or pt.x > self.maxX:
-      return False
-    if pt.y < 0 or pt.y > self.maxY:
-      return False
-    if self.squares[pt] == '#':
-      return False
-    elif self.squares[pt] == '.':
-      return True
-    #elif d == allowed[self.squares[pt]]:
-    else:  # For Part 2, all directions allowed
-      return True
-    return False
+  def create_graph(self):
+    self.graph = Node(self.find_start())
+    self.dest = self.find_dest()
+    nodes = {}
+    nodes[self.graph.pt] = self.graph
+    for x in range(self.maxX + 1):
+      for y in range(self.maxY + 1):
+        if (x,y) in self.squares and self.squares[(x,y)] in ".^<>v":
+          nodes[(x,y)] = Node((x,y))
 
-  def find_path(self, pt, visited_squares):
-    dirs = [(0,-1), (0,1), (-1,0),(1,0)]
+    for node in nodes.values():
+      dirs = [(0,1),(0,-1),(1,0),(-1,0)]
+      for d in dirs:
+        new_point = add_pt(node.pt, d)
+        if new_point in nodes:
+          node.add_edge(nodes[new_point])
+    
+    self.graph = nodes[self.graph.pt]
+    # graph made, now collapse
+    for node in nodes.values():
+      if len(node.connections) == 2:   # One way only 
+        node.remove_thyself()
+  
+  @cache
+  def calculate_path(self, visited_squares, output=False):
+    total_weight = 0
+    prev_square = visited_squares[0]
+    for square in visited_squares[1:]:
+      if output: 
+        print(f"{prev_square.pt}->{square.pt}: {square.connections[prev_square]}")
+      total_weight += square.connections[prev_square]
+      prev_square = square
+    return total_weight
+
+  def find_path(self, node, visited_squares):
+    # t_parameters = (node.pt, tuple(visited_squares))
+    # cache_result = self.cache.get(t_parameters, None)
+    # if cache_result:
+    #   return cache_result
+
+    visited_squares.append(node)
     paths = []
 
-    if pt == self.dest:
-      return visited_squares
-
-    t_parameters = (pt, tuple(set(visited_squares)))
-    cache_result = self.cache.get(t_parameters, None)
-    if cache_result:
-      return cache_result
-    
-    visited_squares.append(pt)
-
-    for d in dirs:
-      new_point = add_pt(pt, d)
-      if self.is_valid(new_point, d) and not new_point in visited_squares:
-        new_path = self.find_path(new_point, [sq for sq in visited_squares])
+    for n in node.connections.keys():
+      if n in visited_squares:
+        continue
+      if n.pt == self.dest:
+        visited_squares.append(n)
+        paths.append(visited_squares)
+      else:
+        new_path = self.find_path(n, [sq for sq in visited_squares])
         if new_path:
           paths.append(new_path)
+    
     # which path is longest
     longest = 0
     longestPath = None
     for path in paths:
-      if path and len(path) > longest:
+      length_path = self.calculate_path(tuple(path))
+      if length_path > longest:
         longestPath = path
-        longest = len(path)
+        longest = length_path
+        if length_path > self.longest:
+          self.longest = length_path
+          print(f"New Longest: {self.longest}")
     
-    self.cache[t_parameters] = longestPath
+    # self.cache[t_parameters] = longestPath
     return longestPath
-
-  def wrap(self, pt):
-    return Point(pt.x % (self.maxX + 1), pt.y % (self.maxY + 1))  
-
+  
+  def print_nodes(self, node, visited):
+    print("Node", node.pt, len(node.connections))
+    visited.add(node)
+    for n in node.connections:
+      if n not in visited:
+        self.print_nodes(n, visited)
+ 
   def find_start(self):
     return self.find_first(0)
 
@@ -96,11 +140,13 @@ class Grid():
     return f"{self.squares} {self.maxX} {self.maxY}"
 
 def part1(grid):
-  start = grid.find_start()
-  grid.dest = grid.find_dest()
-
-  path = grid.find_path(start, [])
-  print(f"Part 1: {len(path)}")
+  grid.create_graph()
+  print("Starting Find Path")
+  visited = set()
+  grid.print_nodes(grid.graph, visited)
+  path = grid.find_path(grid.graph, [])
+  length = grid.calculate_path(tuple(path), output=True)
+  print(f"Part 1: {length}")
 
 sys.setrecursionlimit(100_000)
 
