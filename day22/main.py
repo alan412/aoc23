@@ -12,122 +12,62 @@ def parseArgs():
   parser.add_argument('infile', help='input file')
   return parser.parse_args()
 
-@dataclass()
-class Point():
-  x: int
-  y: int
-  z: int
+class Block():
+  def __init__(self, x, y, z, b):
+    self.x = x
+    self.y = y
+    self.z = z
+    self.brick = b
+  def __repr__(self):
+    return f"({self.x},{self.y},{self.z}) : {self.brick}"
+  def is_supported(self):
+    return self.z == 1 or (blocks.get((self.x, self.y, self.z - 1), self).brick != self.brick)
 
-  def __sub__(self, other):
-    return Point(self.x - other.x, self.y - other.y, self.z - other.z)
-  def __add__(self, other):
-    return Point(self.x + other.x, self.y + other.y, self.z + other.z)
-  def __lt__(self, other):
-    if self.z == other.z:
-      if self.y == other.y:
-        return self.x < other.x
-      return self.y < other.y
-    return self.z == other.z
-  
-@total_ordering
 class Brick():
-  def __init__(self, start_pt, end_pt):
-    self.origin = start_pt
-    self.end_pt = end_pt
-    # self.size = end_pt - start_pt
-    # assert self.size.x >= 0 and self.size.y >= 0 and self.size.z >= 0
-  def drop_z(self, z_change):
-    self.origin.z -= z_change
-    self.end_pt.z -= z_change
-  def intersect(self, other):
-    if other.origin.z > self.end_pt.z or other.end_pt.z < self.origin.z:
-      return False
-    if other.origin.x > self.end_pt.x or other.end_pt.x < self.origin.x:
-      return False
-    if other.origin.y > self.end_pt.y or other.end_pt.y < self.origin.y:
-      return False
-    return True 
-  def rests_on(self, other):
-    if self.origin.z != other.origin.z + 1:
-      print(f"1 - No Rest on {self} {other}")
-      return False
-    # otherwise, is any of the x and y the same
-    if self.origin.x > other.end_pt.x or self.end_pt.x < other.origin.x:
-      print(f"2 - No Rest on {self} {other}")
-      return False
-    if self.origin.y > other.end_pt.y or self.end_pt.y < other.origin.y:
-      print(f"3 - No Rest on {self} {other}")
-      return False
-    return True
+  def __init__(self, start, end):
+    self.startZ = min(start[2], end[2])
+    self.blocks = [Block(x,y,z,self) for x in range(start[0],end[0] + 1) for y in range(start[1],end[1] + 1) for z in range(start[2],end[2] + 1)]
 
-  def __lt__(self, other):
-    return self.origin < other.origin
-  def __eq__(self, other):
-    return self.origin == other.origin
-  def __repr__(self):
-    return f"{self.origin}->{self.end_pt}"
+  def is_falling(self):
+    return not any(b.is_supported() for b in self.blocks)
+  
+def collapse(bricks):
+  dropped = set()
+  for brick in bricks:
+    while brick.is_falling():
+      for b in brick.blocks:
+        blocks[b.x, b.y, b.z - 1] = blocks.pop((b.x, b.y, b.z))
+        b.z -= 1
+      dropped.add(brick)
+  return len(dropped)
 
-class Grid():
-  def __init__(self):
-    self.bricks = []
-  def add_line(self, line):
-    r = re.match(r"(\d+),(\d+),(\d+)~(\d+),(\d+),(\d+)", line)
-    self.bricks.append(Brick(Point(int(r.group(1)), int(r.group(2)), int(r.group(3))), 
-                      Point(int(r.group(4)), int(r.group(5)), int(r.group(6)))))
-  def sort(self):
-    self.bricks = sorted(self.bricks)
-  
-  def can_drop(self, brick, z):
-    if brick.origin.z <= 1:
-      return False
-    newBrick = Brick(Point(brick.origin.x, brick.origin.y, brick.origin.z - z),
-                     Point(brick.end_pt.x, brick.end_pt.y, brick.end_pt.z - z))
-    for b in self.bricks:
-      if b == brick:
-        continue
-      if b.intersect(newBrick):
-        return False
-    return True
-  
-  def fall(self):
-    self.sort()
-    print(self)
-    for brick in self.bricks:
-      while self.can_drop(brick, 1):
-        brick.drop_z(1)
-
-  def __repr__(self):
-    return f"{self.bricks}"
-  
-  def how_many_can_be_removed(self):
-    aboveBricks = []
-    total = 0
-    for brick in reversed(self.bricks):
-      print(f"Looking at brick: {brick}")
-      can_be_removed = True
-      for brick2 in aboveBricks:
-        if brick2.rests_on(brick):
-          print(f"+++ {brick2}")
-          can_be_removed = False
-          break
-      if can_be_removed:
-        total += 1
-        print(f"--")
-      aboveBricks.append(brick)
-    return total
-def part1(grid):
-  grid.fall()
-  print("--- After fall ---")
-  print(grid)
-  grid.sort()
-  print(f"Part 1: {grid.how_many_can_be_removed()}")
+bricks = []
+blocks = {}
 
 if __name__ == "__main__":
   args = parseArgs()
 
-  grid = Grid()
   for y, line in enumerate(open(args.infile, 'r')):
-    grid.add_line(line)
+    r = re.match(r"(\d+),(\d+),(\d+)~(\d+),(\d+),(\d+)", line)
+    bricks.append(Brick((int(r.group(1)), int(r.group(2)), int(r.group(3))), 
+                        (int(r.group(4)), int(r.group(5)), int(r.group(6)))))
+  
+  bricks = sorted(bricks, key = lambda a:a.startZ )
+  blocks = {(b.x, b.y, b.z): b for br in bricks for b in br.blocks}
 
-  part1(grid)
-  # part2(grid)
+  collapse(bricks)
+  save_location = {b:k for k,b in blocks.items()}
+
+  part1 = 0
+  part2 = 0
+  for i, br in enumerate(bricks):
+    for b in save_location:
+      b.x,b.y,b.z = save_location[b]
+    blocks = {save_location[b]: b for b in save_location if b.brick != br}
+    dropped = collapse(bricks[:i] + bricks[i + 1: ])
+    if dropped == 0:
+      part1 += 1
+    part2 += dropped
+
+  print("Part1", part1)
+  print("Part2", part2)
