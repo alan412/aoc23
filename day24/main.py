@@ -6,6 +6,7 @@ from collections import namedtuple
 from functools import cache, total_ordering
 from dataclasses import dataclass
 import numpy as np
+import z3
 
 def parseArgs():
   parser = argparse.ArgumentParser()
@@ -71,12 +72,28 @@ def part1():
          num_intersections += 1
   print(f"Pt1: {num_intersections}")
      
+def part2():
+  pxr, pyr, pzr, vxr, vyr, vzr = z3.Reals("pxr pyr pzr vxr vyr vzr")
+  solver = z3.Solver()
+  # only 3 hailstones are needed here;  each creates 1 variable and 3 equations, for a total of 9 vars and 9 eqs
+  for k, h in enumerate(hailstones[:3]):
+    tK = z3.Real(f"t{k}")
+    solver.add(tK > 0)
+    solver.add(pxr + tK * vxr == h.position.x + tK * h.velocity.x)
+    solver.add(pyr + tK * vyr == h.position.y + tK * h.velocity.y)
+    solver.add(pzr + tK * vzr == h.position.z + tK * h.velocity.z)
+  
+  solver.check()
+  total = sum(solver.model()[var].as_long() for var in [pxr, pyr, pzr])
+  print(f"Pt2: {total}")
+
 if __name__ == "__main__":
   args = parseArgs()
 
   for y, line in enumerate(open(args.infile, 'r')):
     hailstones.append(Hail(line.strip()))
 
-  part1()
+  # part1()
+  part2()
 #  print("Part1", part1)
 #  print("Part2", part2)
